@@ -39,6 +39,8 @@ alias emacs="/opt/local/bin/emacs"
 #######EXPORTS
 
 export EDITOR="emacs"
+export ECLIPSE_HOME="/Applications/Eclipse.app/Contents/Eclipse"
+export PATH=$ECLIPSE_HOME:$PATH
 export PATH="~/bin/":$PATH
 export PATH='/opt/local/lib/mariadb/bin/':$PATH:
 export PATH='/opt/local/bin/':$PATH
@@ -49,6 +51,7 @@ export HISTCONTROL=ignoreboth:erasedups
 export CPLUS_INCLUDE_PATH="/opt/local/include/SDL2/"":/opt/local/include/SDL2/SDL.h"
 export LIBRARY_PATH="/opt/local/lib/"
 export LD_LIBRARY_PATH="/opt/local/lib/"
+
                           
 
 #####SETUP PROMPT
