@@ -19,7 +19,6 @@
 (global-set-key (kbd "M-/") 'company-complete)
 (global-set-key (kbd "<f8>") 'set-mark-command)
 (global-set-key (kbd "M-h") 'company-irony-c-headers)
-;;(global-set-key (kbd "M-o") 'cff-find-other-file)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -33,7 +32,6 @@
 ;;SCRATCH
 (setq initial-scratch-message "")
 (setq inhibit-startup-message t)
-;(setq initial-major-mode 'eclim-mode)
 ;;VISUAL SETTINGS
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (setq visible-bell 1)
@@ -263,25 +261,89 @@
             (progn ;SUCCESS
               (shell-command (concat "java " (car (split-string (buffer-name) "\\.")))))
           (progn ;FAIL
-            (print Output)))))
+            (print Output))))
+)
+(defun user-gradle-build ()
+  ""
+  (interactive)
+  (gradle-build)
+)
+(defun user-gradle-run ()
+  ""
+  (interactive)
+  (gradle-execute "run")
+)
+(defun user-file-search-upward (directory file)
+  "Search DIRECTORY for FILE and return its full path if found, or NIL if not. If FILE is not found in DIRECTORY, the parent of DIRECTORY will be searched."
+  (interactive)
+  (let ((parent-dir (file-truename (concat (file-name-directory directory) "../")))
+        (current-path (if (not (string= (substring directory (- (length directory) 1)) "/"))
+                         (concat directory "/" file)
+                         (concat directory file))))
+    (if (file-exists-p current-path)
+        current-path
+        (when (and (not (string= (file-truename directory) parent-dir))
+                   (< (length parent-dir) (length (file-truename directory))))
+          (user-file-search-upward parent-dir file)))))
+(defun user-find-gradle-file ()
+  "Uses helm to find a pattern stopping at the gradle root directory."
+  (interactive)
+  (let ((Path (file-name-directory (user-file-search-upward (buffer-file-name) "build.gradle"))))
+    (if (stringp Path)
+        (progn ;; Found it.
+          (let ((default-directory Path)) (helm-find nil))
+          )(progn ;; False
+             (print "Couldn't find build.gradle.")
+             ))))
 (add-hook 'java-mode-hook
             '(lambda ()
-               (local-set-key "\C-c\C-c" 'user-run-java-buffer)
+               (local-set-key "\C-c\C-c" 'user-gradle-build)
+               (local-set-key "\C-c\C-r" 'user-gradle-run)
+               (local-set-key "\C-x\C-d" 'eclim-java-find-declaration)
+               (local-set-key "\C-x\C-r" 'eclim-java-find-references)
+               ;;Helm
+               (require 'helm-mode)
+               (set-face-attribute 'helm-selection nil 
+                                   :background "black"
+                                   :foreground "yellow")
+               (groovy-electric-mode)
+               (local-set-key "\C-x\C-f" 'user-find-gradle-file)
                ;;Eclim
+               (gradle-mode 1)
+               (require 'company)
                (require 'eclim)
-               (global-eclim-mode)
+               (require 'eclimd)
+               (require 'company-eclim)
+               (require 'yasnippet)
+               (global-eclim-mode t)
+               (global-company-mode)
+               (eclim-mode)
                (custom-set-variables
-                '(eclim-eclipse-dirs '("/Applications/eclipse"))
-                '(eclim-executable "/Applications/eclipse/eclim"))
+                '(eclim-eclipse-dirs '("/Applications/Eclipse.app/Contents/Eclipse/"))
+                '(eclim-executable "/Applications/Eclipse.app/Contents/Eclipse/eclim")
+                '(eclimd-default-workspace "/Users/ebischoff/code/java/")
+                '(eclimd-wait-for-process t)
+                )
                (setq help-at-pt-display-when-idle t)
                (setq help-at-pt-timer-delay 0.1)
                (help-at-pt-set-timer)
-               (require 'yasnippet)
                (yas-global-mode 1)
-               (require 'company-emacs-eclim)
-               (company-emacs-eclim-setup)
-
+               (start-eclimd)
+               
                ))
+
+(add-hook 'groovy-mode-hook '(lambda ()
+             (require 'helm-mode)
+             (require 'groovy-electric)
+             (set-face-attribute 'helm-selection nil 
+                    :background "black"
+                    :foreground "yellow")
+             (groovy-electric-mode)
+             (local-set-key "\C-x\C-f" 'helm-find)
+             (gradle-mode 1)
+             (local-set-key "\C-c\C-c" 'user-gradle-build)
+             (local-set-key "\C-c\C-r" 'user-gradle-run)
+))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -389,6 +451,10 @@ searches all buffers."
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(eclim-eclipse-dirs (quote ("/Applications/Eclipse.app/Contents/Eclipse/")))
+ '(eclim-executable "/Applications/Eclipse.app/Contents/Eclipse/eclim")
+ '(eclimd-default-workspace "/Users/ebischoff/code/java/")
+ '(eclimd-wait-for-process t)
  '(package-selected-packages
    (quote
-    (cff ripgrep popup irony flycheck-clang-tidy f company-rtags company-c-headers ag))))
+    (helm find-file-in-project groovy-mode gradle-mode java-imports eclim cff ripgrep popup irony flycheck-clang-tidy f company-rtags company-c-headers ag))))
