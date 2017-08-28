@@ -338,6 +338,8 @@
                (local-set-key "\C-c\C-q" 'user-gradle-quit)
                (local-set-key "\C-x\C-d" 'eclim-java-find-declaration)
                (local-set-key "\C-x\C-r" 'eclim-java-find-references)
+               (local-set-key "\C-c\C-f" 'eclim-problems-correct)
+               (local-set-key "\C-c\C-o" 'eclim-java-import-organize)
                ;;Helm
                (require 'helm-mode)
                (set-face-attribute 'helm-selection nil 
