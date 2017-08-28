@@ -273,6 +273,33 @@
   (interactive)
   (gradle-execute "run")
 )
+(defun user-gradle-ide ()
+  ""
+  (interactive)
+  (gradle-execute "eclipse")
+)
+(defun user-gradle-test ()
+  ""
+  (interactive)
+  (gradle-execute "test")
+)
+(defun user-gradle-spring ()
+  ""
+  (interactive)
+  (gradle-execute "bootRun")
+)
+(defun user-gradle-clean ()
+  ""
+  (interactive)
+  (gradle-execute "clean")
+)
+(defun user-gradle-quit ()
+  ""
+  (interactive)
+  (kill-buffer "*compilation*")
+  (delete-other-windows)
+  
+)
 (defun user-file-search-upward (directory file)
   "Search DIRECTORY for FILE and return its full path if found, or NIL if not. If FILE is not found in DIRECTORY, the parent of DIRECTORY will be searched."
   (interactive)
@@ -288,17 +315,27 @@
 (defun user-find-gradle-file ()
   "Uses helm to find a pattern stopping at the gradle root directory."
   (interactive)
-  (let ((Path (file-name-directory (user-file-search-upward (buffer-file-name) "build.gradle"))))
-    (if (stringp Path)
-        (progn ;; Found it.
-          (let ((default-directory Path)) (helm-find nil))
-          )(progn ;; False
-             (print "Couldn't find build.gradle.")
-             ))))
+  (if (string= (file-name-nondirectory buffer-file-name) "build.gradle")
+      (helm-find nil)
+      (let ((Path (file-name-directory (user-file-search-upward (buffer-file-name) "build.gradle"))))
+        (if (stringp Path)
+            (progn ;; Found it.
+              (let ((default-directory Path))
+                                        ;(print default-directory)
+                (helm-find nil)
+                )
+              )(progn ;; False
+                 (print "Couldn't find build.gradle.")
+                 )))))
 (add-hook 'java-mode-hook
             '(lambda ()
                (local-set-key "\C-c\C-c" 'user-gradle-build)
                (local-set-key "\C-c\C-r" 'user-gradle-run)
+               (local-set-key "\C-c\C-i" 'user-gradle-ide)
+               (local-set-key "\C-c\C-s" 'user-gradle-spring)
+               (local-set-key "\C-c\C-t" 'user-gradle-test)
+               (local-set-key "\C-c\C-k" 'user-gradle-clean)
+               (local-set-key "\C-c\C-q" 'user-gradle-quit)
                (local-set-key "\C-x\C-d" 'eclim-java-find-declaration)
                (local-set-key "\C-x\C-r" 'eclim-java-find-references)
                ;;Helm
@@ -307,7 +344,7 @@
                                    :background "black"
                                    :foreground "yellow")
                (groovy-electric-mode)
-               (local-set-key "\C-x\C-f" 'user-find-gradle-file)
+               (local-set-key "\C-x\C-g" 'user-find-gradle-file)
                ;;Eclim
                (gradle-mode 1)
                (require 'company)
@@ -339,10 +376,15 @@
                     :background "black"
                     :foreground "yellow")
              (groovy-electric-mode)
-             (local-set-key "\C-x\C-f" 'helm-find)
+             (local-set-key "\C-x\C-g" 'user-find-gradle-file)
              (gradle-mode 1)
              (local-set-key "\C-c\C-c" 'user-gradle-build)
              (local-set-key "\C-c\C-r" 'user-gradle-run)
+             (local-set-key "\C-c\C-i" 'user-gradle-ide)
+             (local-set-key "\C-c\C-s" 'user-gradle-spring)
+             (local-set-key "\C-c\C-t" 'user-gradle-test)
+             (local-set-key "\C-c\C-k" 'user-gradle-clean)
+             (local-set-key "\C-c\C-q" 'user-gradle-quit)
 ))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -457,4 +499,4 @@ searches all buffers."
  '(eclimd-wait-for-process t)
  '(package-selected-packages
    (quote
-    (helm find-file-in-project groovy-mode gradle-mode java-imports eclim cff ripgrep popup irony flycheck-clang-tidy f company-rtags company-c-headers ag))))
+    (crappy-jsp-mode helm find-file-in-project groovy-mode gradle-mode java-imports eclim cff ripgrep popup irony flycheck-clang-tidy f company-rtags company-c-headers ag))))
