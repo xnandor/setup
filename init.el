@@ -17,8 +17,6 @@
 (global-set-key "\M-n" (lambda () (interactive) (forward-line 5)))
 (global-set-key (kbd "C-x _") 'shrink-window)
 (global-set-key (kbd "M-/") 'company-complete)
-(global-set-key (kbd "<f8>") 'set-mark-command)
-(global-set-key (kbd "M-h") 'company-irony-c-headers)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -56,9 +54,11 @@
  '(font-lock-type-face ((t (:foreground "cyan" :weight bold))))
  '(font-lock-variable-name-face ((t (:foreground "white" :weight bold))))
  '(link ((t (:foreground "#ffff00" :underline t))))
+ '(magit-section-highlight ((t (:background "brightblack"))))
  '(minibuffer-prompt ((t (:foreground "red" :weight bold))))
  '(my-carriage-return-face ((((class color)) (:background "blue"))) t)
- '(my-tab-face ((((class color)) (:background "grey20"))) t))
+ '(my-tab-face ((((class color)) (:background "grey20"))) t)
+ '(web-mode-html-tag-bracket-face ((t (:foreground "brightgreen")))))
 ; add custom font locks to all buffers and all files
 (add-hook
  'font-lock-mode-hook
@@ -72,7 +72,6 @@
         ("\r" (0 'my-carriage-return-face t))
         ("\t" (0 'my-tab-face t))
         ))))))
-
 ; make characters after column 80 purple
 (setq whitespace-style
   (quote (face trailing tab-mark lines-tail)))
@@ -94,6 +93,16 @@
 (show-paren-mode 1) ;Parenthese Matching!
 (column-number-mode 1) ;;changes display of position in info bar
 (ido-mode 1)
+(add-hook 'after-init-hook 'global-company-mode)
+(add-to-list 'auto-mode-alist '("\\.phtml\\'" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.tpl\\.php\\'" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.[agj]sp\\'" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.as[cp]x\\'" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.erb\\'" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.mustache\\'" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.djhtml\\'" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.html?\\'" . web-mode))
+(add-to-list 'auto-mode-alist '("Jenkinsfile" . groovy-mode))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -132,6 +141,14 @@
 (add-hook 'find-file-hooks 'my-mark-eob)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;LINUM
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(global-linum-mode)
+(setq linum-format "%4d| ")
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
 ;;CUSTOM FUNCTIONS
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -186,7 +203,7 @@
 
 ;;C Stuff
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(global-set-key "\C-c\C-m" 'compile)
+;;(global-set-key "\C-c\C-m" 'compile)
 (defun user-c-run ()
   "Proceedure for running c program from current buffer. 
  Requires clang.
@@ -236,8 +253,9 @@
 (defun my-c++-mode-hook ()
   (setq c-basic-offset 2)
   (c-set-offset 'substatement-open 0)
-  (global-company-mode)
+  ;(global-company-mode)
   (global-flycheck-mode)
+  (local-set-key (kbd "M-h") 'company-irony-c-headers)
   )
 (add-hook 'c++-mode-hook 'my-c++-mode-hook)
 ;;(require 'cff)
@@ -345,17 +363,17 @@
                (set-face-attribute 'helm-selection nil 
                                    :background "black"
                                    :foreground "yellow")
-               (groovy-electric-mode)
+               ;(groovy-electric-mode)
                (local-set-key "\C-x\C-g" 'user-find-gradle-file)
                ;;Eclim
                (gradle-mode 1)
-               (require 'company)
+               ;(require 'company)
                (require 'eclim)
                (require 'eclimd)
                (require 'company-eclim)
                (require 'yasnippet)
                (global-eclim-mode t)
-               (global-company-mode)
+               ;(global-company-mode)
                (eclim-mode)
                (custom-set-variables
                 '(eclim-eclipse-dirs '("/Applications/Eclipse.app/Contents/Eclipse/"))
@@ -373,13 +391,16 @@
 
 (add-hook 'groovy-mode-hook '(lambda ()
              (require 'helm-mode)
-             (require 'groovy-electric)
+             ;(require 'groovy-electric)
              (set-face-attribute 'helm-selection nil 
                     :background "black"
                     :foreground "yellow")
-             (groovy-electric-mode)
+             ;(groovy-electric-mode)
              (local-set-key "\C-x\C-g" 'user-find-gradle-file)
-             (gradle-mode 1)
+             (if
+                 (string-equal (file-name-nondirectory (buffer-file-name)) "Jenkinsfile")
+                 ()
+               (gradle-mode 1))
              (local-set-key "\C-c\C-c" 'user-gradle-build)
              (local-set-key "\C-c\C-r" 'user-gradle-run)
              (local-set-key "\C-c\C-i" 'user-gradle-ide)
@@ -387,6 +408,17 @@
              (local-set-key "\C-c\C-t" 'user-gradle-test)
              (local-set-key "\C-c\C-k" 'user-gradle-clean)
              (local-set-key "\C-c\C-q" 'user-gradle-quit)
+))
+(add-hook 'web-mode-hook '(lambda ()
+                           (local-set-key "\C-x\C-g" 'user-find-gradle-file)
+                           (gradle-mode 1)
+                           (local-set-key "\C-c\C-c" 'user-gradle-build)
+                           (local-set-key "\C-c\C-r" 'user-gradle-run)
+                           (local-set-key "\C-c\C-i" 'user-gradle-ide)
+                           (local-set-key "\C-c\C-s" 'user-gradle-spring)
+                           (local-set-key "\C-c\C-t" 'user-gradle-test)
+                           (local-set-key "\C-c\C-k" 'user-gradle-clean)
+                           (local-set-key "\C-c\C-q" 'user-gradle-quit)
 ))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -454,7 +486,7 @@ searches all buffers."
 
 
 
-;;ENABLE MOUSE USE WITH "MOUSE TERM" AND "SMBL"
+;;ENABLE MOUSE USE WITH "MOUSE TERM"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unless window-system
   (require 'mouse)
@@ -501,4 +533,4 @@ searches all buffers."
  '(eclimd-wait-for-process t)
  '(package-selected-packages
    (quote
-    (crappy-jsp-mode helm find-file-in-project groovy-mode gradle-mode java-imports eclim cff ripgrep popup irony flycheck-clang-tidy f company-rtags company-c-headers ag))))
+    (magit git-timemachine yaml-mode impatient-mode skewer-reload-stylesheets company-web web-mode crappy-jsp-mode helm find-file-in-project groovy-mode gradle-mode java-imports eclim cff ripgrep popup irony flycheck-clang-tidy f company-rtags company-c-headers ag))))
