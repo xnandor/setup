@@ -118,6 +118,7 @@
         (when (equal major-mode 'dired-mode)
           (setq count (1+ count))
           (kill-buffer buffer)))
+
       (message "Killed %i dired buffer(s)." count))))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -165,7 +166,7 @@
 (require 'package)
 (setq package-archives '(("gnu" . "http://elpa.gnu.org/packages/")
                          ("marmalade" . "http://marmalade-repo.org/packages/")
-                         ("e6h" . "http://www.e6h.org/packages/")
+                         ;; ("e6h" . "http://www.e6h.org/packages/")
                          ("melpa" . "http://melpa.milkbox.net/packages/")))
 (package-initialize)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -263,7 +264,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-
 ;;Java Stuff
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun user-run-java-buffer ()
@@ -305,6 +305,64 @@
   ""
   (interactive)
   (gradle-execute "bootRun")
+  )
+(defun user-gradle-debug-line ()
+  ""
+  (interactive)
+  (gradle-execute "bootRun --debug-jvm")
+  (setq user-debug-timer (run-with-timer 0 0.5 (lambda () (let
+                                                              (
+                                                               (javaBufferName (buffer-name))
+                                                               (gradleBufferName "*compilation*")
+                                                               (project (eclim-project-name))
+                                                               (line (what-line))
+                                                               )
+      (with-current-buffer (get-buffer gradleBufferName)
+        ;; Look for dt_socket to know when debug is listening
+        (if (string-match-p (regexp-quote "dt_socket") (buffer-string))
+          (progn
+            (cancel-timer user-debug-timer)
+            (let (
+                  (port (string-to-int (progn (re-search-forward "dt_socket.*?\\([0-9]+\\)") (match-string-no-properties 1))))
+                  )
+              (eclim-debug-attach port project)
+              (delete-other-windows) ; Make frame have 1 window
+              (switch-to-buffer javaBufferName) ; java on top
+              (setq user-java-package (progn (beginning-of-buffer) (re-search-forward "package +\\(.*?\\);") (match-string-no-properties 1)))
+              (setq user-java-class (progn (beginning-of-buffer) (re-search-forward "public +class +\\(.*?\\) ") (match-string-no-properties 1)))
+              (split-window-below)
+              (other-window 1)
+              (switch-to-buffer gradleBufferName) ; gradle on bottom
+              (window-resize nil 12)
+              (other-window 1)
+              (split-window-right)
+              (other-window 1)
+              (switch-to-buffer "*gud-5005*") ; jdb on right
+              (window-resize nil 20)
+              ;; Wait for jdb to initialize
+              (setq user-debug-timer-2 (run-with-timer 0 0.5 (lambda ()
+                (with-current-buffer (get-buffer "*gud-5005*")
+                  (if (string-match-p (regexp-quote "main\[1\]") (buffer-string))
+                      (progn
+                        (cancel-timer user-debug-timer-2)
+                        (end-of-buffer)
+                        ;; (gud-jdb
+                        ;; (insert (concat "stop in " user-java-package "." user-java-class "\n"))
+                      )
+                    (progn
+                      (minibuffer-message (concat "Waiting for jdb to initialize in [" (buffer-name) "]."))
+                    )
+                  )
+                )
+              )))
+            )
+          )
+          (progn
+            (minibuffer-message "Waiting for jvm debug socket to open")
+          )
+        )
+      )
+  ))))
 )
 (defun user-gradle-clean ()
   ""
@@ -354,6 +412,7 @@
                (local-set-key "\C-c\C-t" 'user-gradle-test)
                (local-set-key "\C-c\C-k" 'user-gradle-clean)
                (local-set-key "\C-c\C-q" 'user-gradle-quit)
+               (local-set-key "\C-c\C-l" 'user-gradle-debug-line)
                (local-set-key "\C-x\C-d" 'eclim-java-find-declaration)
                (local-set-key "\C-x\C-r" 'eclim-java-find-references)
                (local-set-key "\C-c\C-f" 'eclim-problems-correct)
@@ -419,7 +478,23 @@
                            (local-set-key "\C-c\C-t" 'user-gradle-test)
                            (local-set-key "\C-c\C-k" 'user-gradle-clean)
                            (local-set-key "\C-c\C-q" 'user-gradle-quit)
+                           (local-set-key "\C-c\C-l" 'user-gradle-debug-line)
 ))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;Javascript Stuff
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; (unless (package-installed-p 'indium)
+;;   (package-install 'indium))
+;; (require 'indium)
+;; (add-hook 'js-mode-hook #'indium-interaction-mode)
+(require 'js2-mode)
+(add-to-list 'auto-mode-alist '("\\.js\\'" . js2-mode))
+;; Better imenu
+(add-hook 'js2-mode-hook #'js2-imenu-extras-mode)
+(add-hook 'js2-mode-hook #'js2-refactor-mode)
+(add-hook 'js2-mode-hook 'ac-js2-mode)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -533,4 +608,5 @@ searches all buffers."
  '(eclimd-wait-for-process t)
  '(package-selected-packages
    (quote
-    (magit git-timemachine yaml-mode impatient-mode skewer-reload-stylesheets company-web web-mode crappy-jsp-mode helm find-file-in-project groovy-mode gradle-mode java-imports eclim cff ripgrep popup irony flycheck-clang-tidy f company-rtags company-c-headers ag))))
+    (diff-hl diffview ansible auto-complete ac-js2 js2-refactor js2-mode company-tern indium json-mode nginx-mode markdown-mode gitignore-mode docker-compose-mode dockerfile-mode magit git-timemachine yaml-mode impatient-mode skewer-reload-stylesheets company-web web-mode crappy-jsp-mode helm find-file-in-project groovy-mode gradle-mode java-imports eclim cff ripgrep popup irony flycheck-clang-tidy f company-rtags company-c-headers ag))))
+(put 'set-goal-column 'disabled nil)
