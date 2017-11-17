@@ -306,10 +306,10 @@
   (interactive)
   (gradle-execute "bootRun")
   )
-(defun user-gradle-debug-line ()
+(defun user-gradle-debug (user-gradle-command)
   ""
   (interactive)
-  (gradle-execute "bootRun --debug-jvm")
+  (gradle-execute (concat user-gradle-command " --debug-jvm -Dtest.debug"))
   (setq user-debug-timer (run-with-timer 0 0.5 (lambda () (let
                                                               (
                                                                (javaBufferName (buffer-name))
@@ -328,8 +328,8 @@
               (eclim-debug-attach port project)
               (delete-other-windows) ; Make frame have 1 window
               (switch-to-buffer javaBufferName) ; java on top
-              (setq user-java-package (progn (beginning-of-buffer) (re-search-forward "package +\\(.*?\\);") (match-string-no-properties 1)))
-              (setq user-java-class (progn (beginning-of-buffer) (re-search-forward "public +class +\\(.*?\\) ") (match-string-no-properties 1)))
+              (setq user-java-package (progn (beginning-of-buffer) (re-search-forward "package +\\(.*?\\);?$") (match-string-no-properties 1)))
+              (setq user-java-class (progn (beginning-of-buffer) (re-search-forward "class +\\(.*?\\) ") (match-string-no-properties 1)))
               (split-window-below)
               (other-window 1)
               (switch-to-buffer gradleBufferName) ; gradle on bottom
@@ -412,7 +412,7 @@
                (local-set-key "\C-c\C-t" 'user-gradle-test)
                (local-set-key "\C-c\C-k" 'user-gradle-clean)
                (local-set-key "\C-c\C-q" 'user-gradle-quit)
-               (local-set-key "\C-c\C-l" 'user-gradle-debug-line)
+               (local-set-key "\C-c\C-l" (lambda () (interactive) (user-gradle-debug "bootRun")))
                (local-set-key "\C-x\C-d" 'eclim-java-find-declaration)
                (local-set-key "\C-x\C-r" 'eclim-java-find-references)
                (local-set-key "\C-c\C-f" 'eclim-problems-correct)
@@ -460,10 +460,19 @@
                  (string-equal (file-name-nondirectory (buffer-file-name)) "Jenkinsfile")
                  ()
                (gradle-mode 1))
+             ;;Eclim
+             (gradle-mode 1)
+             (require 'eclim)
+             (require 'eclimd)
+             (require 'company-eclim)
+             (require 'yasnippet)
+             (global-eclim-mode t)
+
              (local-set-key "\C-c\C-c" 'user-gradle-build)
              (local-set-key "\C-c\C-r" 'user-gradle-run)
              (local-set-key "\C-c\C-i" 'user-gradle-ide)
              (local-set-key "\C-c\C-s" 'user-gradle-spring)
+             (local-set-key "\C-c\C-l" (lambda () (interactive) (user-gradle-debug "test")))
              (local-set-key "\C-c\C-t" 'user-gradle-test)
              (local-set-key "\C-c\C-k" 'user-gradle-clean)
              (local-set-key "\C-c\C-q" 'user-gradle-quit)
@@ -478,7 +487,7 @@
                            (local-set-key "\C-c\C-t" 'user-gradle-test)
                            (local-set-key "\C-c\C-k" 'user-gradle-clean)
                            (local-set-key "\C-c\C-q" 'user-gradle-quit)
-                           (local-set-key "\C-c\C-l" 'user-gradle-debug-line)
+                           (local-set-key "\C-c\C-l" (lambda () (interactive) (user-gradle-debug "bootRun")))
 ))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
