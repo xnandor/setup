@@ -8,6 +8,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;; Code:
+(defun my-flymd-browser-function (url)
+  (let ((process-environment (browse-url-process-environment)))
+    (apply 'start-process
+           (concat "firefox " url)
+           nil
+           "/usr/bin/open"
+           (list "-a" "firefox" url))))
+(setq flymd-browser-open-function 'my-flymd-browser-function)
 
 ;;KEY SET
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -17,6 +25,14 @@
 (global-set-key "\M-n" (lambda () (interactive) (forward-line 5)))
 (global-set-key (kbd "C-x _") 'shrink-window)
 (global-set-key (kbd "M-/") 'company-complete)
+(defun my-compilation-hook () 
+  "Make sure that the compile window is splitting vertically"
+  (progn
+    (global-set-key "\M-p" (lambda () (interactive) (forward-line -5)))
+    (global-set-key "\M-n" (lambda () (interactive) (forward-line 5)))
+    )
+  )
+(add-hook 'compilation-mode-hook 'my-compilation-hook)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -306,10 +322,25 @@
   (interactive)
   (gradle-execute "bootRun")
   )
-(defun user-gradle-debug (user-gradle-command)
-  ""
+
+(define-minor-mode gradled-mode
+  "Mode for debugging java gradle tasks."
+  :lighter " gradled"
+  :keymap (let ((map (make-sparse-keymap)))
+            (define-key map (kbd "C-c C-l") 'gradled-debug)
+            map)
+  :body (progn
+          
+          )
+  )
+(defun gradled-debug ()
+  "Initiates debuging the current buffer with a given task."
   (interactive)
-  (gradle-execute (concat user-gradle-command " --debug-jvm -Dtest.debug"))
+  (setq gradled--buffer-task "bootRun")
+  (when (string-match-p (regexp-quote ".*\.groovy") (buffer-name))
+      (setq gradled--buffer-task "test")
+      )
+  (gradle-execute (concat gradled--buffer-task " --debug-jvm -Dtest.debug"))
   (setq user-debug-timer (run-with-timer 0 0.5 (lambda () (let
                                                               (
                                                                (javaBufferName (buffer-name))
@@ -404,7 +435,8 @@
                  (print "Couldn't find build.gradle.")
                  )))))
 (add-hook 'java-mode-hook
-            '(lambda ()
+          '(lambda ()
+             (gradled-mode)
                (local-set-key "\C-c\C-c" 'user-gradle-build)
                (local-set-key "\C-c\C-r" 'user-gradle-run)
                (local-set-key "\C-c\C-i" 'user-gradle-ide)
@@ -412,7 +444,6 @@
                (local-set-key "\C-c\C-t" 'user-gradle-test)
                (local-set-key "\C-c\C-k" 'user-gradle-clean)
                (local-set-key "\C-c\C-q" 'user-gradle-quit)
-               (local-set-key "\C-c\C-l" (lambda () (interactive) (user-gradle-debug "bootRun")))
                (local-set-key "\C-x\C-d" 'eclim-java-find-declaration)
                (local-set-key "\C-x\C-r" 'eclim-java-find-references)
                (local-set-key "\C-c\C-f" 'eclim-problems-correct)
@@ -467,12 +498,12 @@
              (require 'company-eclim)
              (require 'yasnippet)
              (global-eclim-mode t)
-
+             ;; Gradled mode
+             (gradled-mode)
              (local-set-key "\C-c\C-c" 'user-gradle-build)
              (local-set-key "\C-c\C-r" 'user-gradle-run)
              (local-set-key "\C-c\C-i" 'user-gradle-ide)
              (local-set-key "\C-c\C-s" 'user-gradle-spring)
-             (local-set-key "\C-c\C-l" (lambda () (interactive) (user-gradle-debug "test")))
              (local-set-key "\C-c\C-t" 'user-gradle-test)
              (local-set-key "\C-c\C-k" 'user-gradle-clean)
              (local-set-key "\C-c\C-q" 'user-gradle-quit)
@@ -480,6 +511,7 @@
 (add-hook 'web-mode-hook '(lambda ()
                            (local-set-key "\C-x\C-g" 'user-find-gradle-file)
                            (gradle-mode 1)
+                           (gradled-mode)
                            (local-set-key "\C-c\C-c" 'user-gradle-build)
                            (local-set-key "\C-c\C-r" 'user-gradle-run)
                            (local-set-key "\C-c\C-i" 'user-gradle-ide)
@@ -487,7 +519,6 @@
                            (local-set-key "\C-c\C-t" 'user-gradle-test)
                            (local-set-key "\C-c\C-k" 'user-gradle-clean)
                            (local-set-key "\C-c\C-q" 'user-gradle-quit)
-                           (local-set-key "\C-c\C-l" (lambda () (interactive) (user-gradle-debug "bootRun")))
 ))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -617,5 +648,5 @@ searches all buffers."
  '(eclimd-wait-for-process t)
  '(package-selected-packages
    (quote
-    (diff-hl diffview ansible auto-complete ac-js2 js2-refactor js2-mode company-tern indium json-mode nginx-mode markdown-mode gitignore-mode docker-compose-mode dockerfile-mode magit git-timemachine yaml-mode impatient-mode skewer-reload-stylesheets company-web web-mode crappy-jsp-mode helm find-file-in-project groovy-mode gradle-mode java-imports eclim cff ripgrep popup irony flycheck-clang-tidy f company-rtags company-c-headers ag))))
+    (mkdown markdown-preview-eww flymd csharp-mode diff-hl diffview ansible auto-complete ac-js2 js2-refactor js2-mode company-tern indium json-mode nginx-mode markdown-mode gitignore-mode docker-compose-mode dockerfile-mode magit git-timemachine yaml-mode impatient-mode skewer-reload-stylesheets company-web web-mode crappy-jsp-mode helm find-file-in-project groovy-mode gradle-mode java-imports eclim cff ripgrep popup irony flycheck-clang-tidy f company-rtags company-c-headers ag))))
 (put 'set-goal-column 'disabled nil)
