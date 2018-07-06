@@ -8,14 +8,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;; Code:
-(defun my-flymd-browser-function (url)
-  (let ((process-environment (browse-url-process-environment)))
-    (apply 'start-process
-           (concat "firefox " url)
-           nil
-           "/usr/bin/open"
-           (list "-a" "firefox" url))))
-(setq flymd-browser-open-function 'my-flymd-browser-function)
 
 ;;KEY SET
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -25,14 +17,6 @@
 (global-set-key "\M-n" (lambda () (interactive) (forward-line 5)))
 (global-set-key (kbd "C-x _") 'shrink-window)
 (global-set-key (kbd "M-/") 'company-complete)
-(defun my-compilation-hook () 
-  "Make sure that the compile window is splitting vertically"
-  (progn
-    (global-set-key "\M-p" (lambda () (interactive) (forward-line -5)))
-    (global-set-key "\M-n" (lambda () (interactive) (forward-line 5)))
-    )
-  )
-(add-hook 'compilation-mode-hook 'my-compilation-hook)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -118,7 +102,19 @@
 (add-to-list 'auto-mode-alist '("\\.mustache\\'" . web-mode))
 (add-to-list 'auto-mode-alist '("\\.djhtml\\'" . web-mode))
 (add-to-list 'auto-mode-alist '("\\.html?\\'" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.cilo?\\'" . groovy-mode))
 (add-to-list 'auto-mode-alist '("Jenkinsfile" . groovy-mode))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; HTML
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(add-hook 'web-mode-hook
+          (lambda ()
+            (eclim-mode)
+            (gradle-mode)
+            (setq web-mode-markup-indent-offset 2)
+            ))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -134,7 +130,6 @@
         (when (equal major-mode 'dired-mode)
           (setq count (1+ count))
           (kill-buffer buffer)))
-
       (message "Killed %i dired buffer(s)." count))))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -161,7 +156,7 @@
 
 ;;LINUM
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(global-linum-mode)
+;; (global-linum-mode)
 (setq linum-format "%4d| ")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -182,7 +177,7 @@
 (require 'package)
 (setq package-archives '(("gnu" . "http://elpa.gnu.org/packages/")
                          ("marmalade" . "http://marmalade-repo.org/packages/")
-                         ;; ("e6h" . "http://www.e6h.org/packages/")
+                         ("e6h" . "http://www.e6h.org/packages/")
                          ("melpa" . "http://melpa.milkbox.net/packages/")))
 (package-initialize)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -280,6 +275,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+
 ;;Java Stuff
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun user-run-java-buffer ()
@@ -321,79 +317,6 @@
   ""
   (interactive)
   (gradle-execute "bootRun")
-  )
-
-(define-minor-mode gradled-mode
-  "Mode for debugging java gradle tasks."
-  :lighter " gradled"
-  :keymap (let ((map (make-sparse-keymap)))
-            (define-key map (kbd "C-c C-l") 'gradled-debug)
-            map)
-  :body (progn
-          
-          )
-  )
-(defun gradled-debug ()
-  "Initiates debuging the current buffer with a given task."
-  (interactive)
-  (setq gradled--buffer-task "bootRun")
-  (when (string-match-p (regexp-quote ".*\.groovy") (buffer-name))
-      (setq gradled--buffer-task "test")
-      )
-  (gradle-execute (concat gradled--buffer-task " --debug-jvm -Dtest.debug"))
-  (setq user-debug-timer (run-with-timer 0 0.5 (lambda () (let
-                                                              (
-                                                               (javaBufferName (buffer-name))
-                                                               (gradleBufferName "*compilation*")
-                                                               (project (eclim-project-name))
-                                                               (line (what-line))
-                                                               )
-      (with-current-buffer (get-buffer gradleBufferName)
-        ;; Look for dt_socket to know when debug is listening
-        (if (string-match-p (regexp-quote "dt_socket") (buffer-string))
-          (progn
-            (cancel-timer user-debug-timer)
-            (let (
-                  (port (string-to-int (progn (re-search-forward "dt_socket.*?\\([0-9]+\\)") (match-string-no-properties 1))))
-                  )
-              (eclim-debug-attach port project)
-              (delete-other-windows) ; Make frame have 1 window
-              (switch-to-buffer javaBufferName) ; java on top
-              (setq user-java-package (progn (beginning-of-buffer) (re-search-forward "package +\\(.*?\\);?$") (match-string-no-properties 1)))
-              (setq user-java-class (progn (beginning-of-buffer) (re-search-forward "class +\\(.*?\\) ") (match-string-no-properties 1)))
-              (split-window-below)
-              (other-window 1)
-              (switch-to-buffer gradleBufferName) ; gradle on bottom
-              (window-resize nil 12)
-              (other-window 1)
-              (split-window-right)
-              (other-window 1)
-              (switch-to-buffer "*gud-5005*") ; jdb on right
-              (window-resize nil 20)
-              ;; Wait for jdb to initialize
-              (setq user-debug-timer-2 (run-with-timer 0 0.5 (lambda ()
-                (with-current-buffer (get-buffer "*gud-5005*")
-                  (if (string-match-p (regexp-quote "main\[1\]") (buffer-string))
-                      (progn
-                        (cancel-timer user-debug-timer-2)
-                        (end-of-buffer)
-                        ;; (gud-jdb
-                        ;; (insert (concat "stop in " user-java-package "." user-java-class "\n"))
-                      )
-                    (progn
-                      (minibuffer-message (concat "Waiting for jdb to initialize in [" (buffer-name) "]."))
-                    )
-                  )
-                )
-              )))
-            )
-          )
-          (progn
-            (minibuffer-message "Waiting for jvm debug socket to open")
-          )
-        )
-      )
-  ))))
 )
 (defun user-gradle-clean ()
   ""
@@ -435,8 +358,7 @@
                  (print "Couldn't find build.gradle.")
                  )))))
 (add-hook 'java-mode-hook
-          '(lambda ()
-             (gradled-mode)
+            '(lambda ()
                (local-set-key "\C-c\C-c" 'user-gradle-build)
                (local-set-key "\C-c\C-r" 'user-gradle-run)
                (local-set-key "\C-c\C-i" 'user-gradle-ide)
@@ -487,19 +409,11 @@
                     :foreground "yellow")
              ;(groovy-electric-mode)
              (local-set-key "\C-x\C-g" 'user-find-gradle-file)
+             (highlight-lines-matching-regexp "^[ \t]*\$.*" 'hi-blue-b)
              (if
                  (string-equal (file-name-nondirectory (buffer-file-name)) "Jenkinsfile")
                  ()
                (gradle-mode 1))
-             ;;Eclim
-             (gradle-mode 1)
-             (require 'eclim)
-             (require 'eclimd)
-             (require 'company-eclim)
-             (require 'yasnippet)
-             (global-eclim-mode t)
-             ;; Gradled mode
-             (gradled-mode)
              (local-set-key "\C-c\C-c" 'user-gradle-build)
              (local-set-key "\C-c\C-r" 'user-gradle-run)
              (local-set-key "\C-c\C-i" 'user-gradle-ide)
@@ -511,7 +425,6 @@
 (add-hook 'web-mode-hook '(lambda ()
                            (local-set-key "\C-x\C-g" 'user-find-gradle-file)
                            (gradle-mode 1)
-                           (gradled-mode)
                            (local-set-key "\C-c\C-c" 'user-gradle-build)
                            (local-set-key "\C-c\C-r" 'user-gradle-run)
                            (local-set-key "\C-c\C-i" 'user-gradle-ide)
@@ -520,21 +433,6 @@
                            (local-set-key "\C-c\C-k" 'user-gradle-clean)
                            (local-set-key "\C-c\C-q" 'user-gradle-quit)
 ))
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;;Javascript Stuff
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; (unless (package-installed-p 'indium)
-;;   (package-install 'indium))
-;; (require 'indium)
-;; (add-hook 'js-mode-hook #'indium-interaction-mode)
-(require 'js2-mode)
-(add-to-list 'auto-mode-alist '("\\.js\\'" . js2-mode))
-;; Better imenu
-(add-hook 'js2-mode-hook #'js2-imenu-extras-mode)
-(add-hook 'js2-mode-hook #'js2-refactor-mode)
-(add-hook 'js2-mode-hook 'ac-js2-mode)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -648,5 +546,4 @@ searches all buffers."
  '(eclimd-wait-for-process t)
  '(package-selected-packages
    (quote
-    (mkdown markdown-preview-eww flymd csharp-mode diff-hl diffview ansible auto-complete ac-js2 js2-refactor js2-mode company-tern indium json-mode nginx-mode markdown-mode gitignore-mode docker-compose-mode dockerfile-mode magit git-timemachine yaml-mode impatient-mode skewer-reload-stylesheets company-web web-mode crappy-jsp-mode helm find-file-in-project groovy-mode gradle-mode java-imports eclim cff ripgrep popup irony flycheck-clang-tidy f company-rtags company-c-headers ag))))
-(put 'set-goal-column 'disabled nil)
+    (go-mode dockerfile-mode company-erlang magit git-timemachine yaml-mode impatient-mode skewer-reload-stylesheets company-web web-mode crappy-jsp-mode helm find-file-in-project groovy-mode gradle-mode java-imports eclim cff ripgrep popup irony flycheck-clang-tidy f company-rtags company-c-headers ag))))
