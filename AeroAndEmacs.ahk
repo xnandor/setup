@@ -17,6 +17,8 @@ GroupAdd, alreadyemacsgroup, ahk_exe bash.exe                  ; already has ema
 GroupAdd, alreadyemacsgroup, ahk_class SWT_Window0             ;   eclipse main editor
 GroupAdd, alreadyemacsGroup, ahk_exe sublime_text.exe          ; sublime text
 GroupAdd, alreadyemacsGroup, ahk_exe devenv.exe                ; visual studio
+GroupAdd, alreadyemacsGroup, ahk_exe Code.exe                  ; VS Code
+GroupAdd, needsNavigationGroup, ahk_exe Code.exe                 ; VS Code
 GroupAdd, needskiplinesGroup, ahk_exe sublime_text.exe         ; sublime text
 GroupAdd, bashgroup, ahk_exe bash.exe                          ; Bash
 GroupAdd, eclipsegroup, ahk_exe javaw.exe                      ; Eclipse
@@ -399,6 +401,104 @@ return
         }
 return
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;NEEDS NAVIGATION LINES
+#IfWinActive, ahk_group needsNavigationGroup
+^n::
+        if (selectMode = 0) {
+                send, {Down}
+        } else {
+                send, {Shift down}{Down}{Shift up}
+        }
+return
+
+^p::
+        if (selectMode = 0) {
+                send, {Up}
+        } else {
+                send, {Shift down}{Up}{Shift up}
+        }
+return
+
+^f::
+        if (A_ThisHotkey=A_PriorHotkey && A_TimeSincePriorHotkey < 300) {
+        } if (ctrlXPressed = 1) {
+        } else if (ctrlCPressed = 1) {
+        } else if (selectMode = 1) {
+                send, {Shift down}{Right}{Shift up}
+        } else if (searchMode = 1) {
+        } else {
+                send, {Right}
+        }
+return
+
+^b::
+        if (selectMode = 0) {
+                send, {Left}
+        } else {
+                send, {Shift down}{Left}{Shift up}
+        }
+return
+
+^a::
+        if (selectMode = 0) {
+                send, {Home}
+        } else {
+                send, {Shift down}{Home}{Shift up}
+        }
+return
+
+^e::
+        if (selectMode = 0) {
+                send, {End}
+        } else {
+                send, {Shift down}{End}{Shift up}
+        }
+return
+
+!n::
+        if (selectMode = 0) {
+                send, {Down 5}
+        } else {
+                send, {Shift down}
+                send, {Down 5}
+                send, {Shift up}
+        }
+return
+
+!p::
+        if (selectMode = 0) {
+                send, {Up 5}
+        } else {
+                send, {Shift down}
+                send, {Up 5}
+                send, {Shift up}
+        }
+return
+
+
+^d::
+        if (A_ThisHotkey=A_PriorHotkey && A_TimeSincePriorHotkey < 300) {
+        } if (ctrlXPressed = 1) {
+        } else if (ctrlCPressed = 1) {
+        } else if (selectMode = 1) {
+        } else if (searchMode = 1) {
+        } else {
+                selectModeOff()
+                send, {Delete}
+        }
+
+return
+
+
+^i::
+        send, {Tab}
+return
+
+!i::
+        send, {Alt up}{Alt down}
+        send, {Shift down}{Tab}{Shift up}
+return
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;ECLIPSE
 #IfWinActive, ahk_group eclipsegroup
 ^e::
@@ -511,7 +611,8 @@ return
 
 ^w::
         selectModeOff()
-        send ^x
+        send, ^c
+        send, {Delete}
 return
 
 !w::
