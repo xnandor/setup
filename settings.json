@@ -1,0 +1,16 @@
+{
+    "terminal.integrated.shell.windows": "C:\\Program Files\\Git\\bin\\bash.exe",
+    "window.zoomLevel": 0,
+    "editor.minimap.enabled": true,
+    "editor.renderWhitespace": "none",
+    "breadcrumbs.enabled": true,
+    "workbench.activityBar.visible": true,
+    "explorer.confirmDragAndDrop": false,
+    "files.autoGuessEncoding": true,
+    "files.eol": "\n",
+    "files.associations": {
+        "*.cilo": "groovy",
+        "cilo": "shellscript",
+        "*.el": "lisp"
+    }
+}
